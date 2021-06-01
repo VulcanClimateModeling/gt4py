@@ -233,7 +233,9 @@ class InitInfoPass(TransformPass):
 
         def _add_symbol(self, decl):
             has_redundancy = (
-                isinstance(decl, gt_ir.FieldDecl) and self.redundant_temp_fields and not decl.is_api
+                isinstance(decl, gt_ir.FieldDecl)
+                and self.redundant_temp_fields
+                and not decl.is_api
             )
             symbol_info = SymbolInfo(decl, has_redundancy=has_redundancy)
             self.data.symbols[decl.name] = symbol_info
@@ -288,7 +290,9 @@ class InitInfoPass(TransformPass):
 
         def visit_TernaryOpExpr(self, node: gt_ir.TernaryOpExpr):
             result = (
-                self.visit(node.condition) + self.visit(node.then_expr) + self.visit(node.else_expr)
+                self.visit(node.condition)
+                + self.visit(node.then_expr)
+                + self.visit(node.else_expr)
             )
             return result
 
@@ -337,7 +341,9 @@ class InitInfoPass(TransformPass):
                 list(body_stmt_info.inputs.items()) + condition_input_extents
             )
 
-            result = StatementInfo(self.data.id_generator.new, node, inputs, body_stmt_info.outputs)
+            result = StatementInfo(
+                self.data.id_generator.new, node, inputs, body_stmt_info.outputs
+            )
 
             return result
 
@@ -543,11 +549,26 @@ class MultiStageMergingWrapper:
     ) -> List["MultiStageMergingWrapper"]:
         return [cls(block, parent) for block in items]
 
+    def is_regions_only(self, target) -> bool:
+        for ij_block in self.ij_blocks:
+            for interval_block in ij_block.interval_blocks:
+                for statement_info in interval_block.stmts:
+                    if not isinstance(statement_info.stmt, gt_ir.HorizontalIf):
+                        return False
+        for ij_block in target.ij_blocks:
+            for interval_block in ij_block.interval_blocks:
+                for statement_info in interval_block.stmts:
+                    if not isinstance(statement_info.stmt, gt_ir.HorizontalIf):
+                        return False
+        return True
+
     def can_merge_with(self, candidate: "MultiStageMergingWrapper") -> bool:
         if self.parent != candidate.parent:
             return False
         if candidate.iteration_order != self.iteration_order:
             return False
+        if candidate.is_regions_only(self):
+            return True
         if candidate.has_disallowed_read_with_offset_and_write(self):
             return False
         return True
@@ -563,7 +584,9 @@ class MultiStageMergingWrapper:
             else:
                 self._multi_stage.inputs[name] = extent
 
-    def has_disallowed_read_with_offset_and_write(self, target: "MultiStageMergingWrapper") -> bool:
+    def has_disallowed_read_with_offset_and_write(
+        self, target: "MultiStageMergingWrapper"
+    ) -> bool:
         write_after_read_fields = {"all": self.write_after_read_fields_in(target)}
         write_after_read_fields["api"] = write_after_read_fields["all"].intersection(
             self.api_fields_names
@@ -686,6 +709,17 @@ class StageMergingWrapper:
     ) -> List["StageMergingWrapper"]:
         return [cls(ij_block, parent, parent_block) for ij_block in items]
 
+    def is_regions_only(self, target) -> bool:
+        for interval_block in self.interval_blocks:
+            for statement_info in interval_block.stmts:
+                if not isinstance(statement_info.stmt, gt_ir.HorizontalIf):
+                    return False
+        for interval_block in target.interval_blocks:
+            for statement_info in interval_block.stmts:
+                if not isinstance(statement_info.stmt, gt_ir.HorizontalIf):
+                    return False
+        return True
+
     def can_merge_with(self, candidate: "StageMergingWrapper") -> bool:
         if not self.parent_block == candidate.parent_block:
             return False
@@ -698,6 +732,9 @@ class StageMergingWrapper:
         # merging stages will not imply a reordering of the execution order
         if self.has_incompatible_intervals_with(candidate):
             return False
+
+        if self.is_regions_only(candidate):
+            return True
 
         # Check that there are not data dependencies between stages
         if self.has_data_dependencies_with(candidate):
@@ -724,7 +761,9 @@ class StageMergingWrapper:
         i_to_ib_map = self.interval_to_iblock_mapping
         for candidate_iblock in candidate.interval_blocks:
             if candidate_iblock.interval in i_to_ib_map:
-                self._merge_interval_block(i_to_ib_map[candidate_iblock.interval], candidate_iblock)
+                self._merge_interval_block(
+                    i_to_ib_map[candidate_iblock.interval], candidate_iblock
+                )
             else:
                 # candidate block must be inserted at the correct position so that they appear in the order dictated
                 #  by the iteration order. note that this reordering is valid as candidate was already checked for
