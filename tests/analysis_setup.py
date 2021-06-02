@@ -28,6 +28,7 @@ from gt4py.analysis.passes import (
     InitInfoPass,
     MergeBlocksPass,
     NormalizeBlocksPass,
+    ReduceTemporaryStoragesPass,
 )
 
 
@@ -103,6 +104,15 @@ def demote_locals_pass(build_iir_pass: AnalysisPass) -> Iterator[AnalysisPass]:
 def constant_folding_pass(build_iir_pass: AnalysisPass) -> Iterator[AnalysisPass]:
     def inner(data: TransformData) -> TransformData:
         ConstantFoldingPass.apply(build_iir_pass(data))
+        return data
+
+    yield inner
+
+
+@pytest.fixture()
+def reduce_temporaries_pass(demote_locals_pass: AnalysisPass) -> Iterator[AnalysisPass]:
+    def inner(data: TransformData) -> TransformData:
+        ReduceTemporaryStoragesPass.apply(demote_locals_pass(data))
         return data
 
     yield inner

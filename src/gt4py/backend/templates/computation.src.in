@@ -43,7 +43,7 @@
         }
     }
     - stencil_unique_name: str
-    - tmp_fields: [{ "name": str, "dtype": str }]
+    - tmp_fields: [{ "name": str, "dtype": str, "selector": [bool], "naxes": int }]
 #}
 
 {%- if gt_backend == "cuda" %}
@@ -164,9 +164,9 @@ using p_{{ param.name }} = gt::arg<{{ arg_counter + loop.index0 }}, gt::global_p
 {%- endfor %}
 {% set arg_counter = arg_counter + parameters|length %}
 {% if tmp_fields -%}
+// Temporary Storages
 {%- for field in tmp_fields %}
-// All temporaries are 3D storages. For now...
-using p_{{ field.name }} = gt::tmp_arg<{{ arg_counter + loop.index0 }}, typename storage_traits<{{ field.dtype }}, 0, 1, 1, 1>::store_t>;
+using p_{{ field.name }} = gt::tmp_arg<{{ arg_counter + loop.index0 }}, typename storage_traits<{{ field.dtype }}, 0, {{ field.selector | join(", ") | lower }}>::store_t>;
 {%- endfor %}
 {% set arg_counter = arg_counter + tmp_fields|length %}
 {%- endif %}

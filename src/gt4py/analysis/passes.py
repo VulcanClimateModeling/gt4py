@@ -1442,6 +1442,96 @@ class ConstantFoldingPass(TransformPass):
         return transform_data
 
 
+class ReduceTemporaryStoragesPass(TransformPass):
+    """Demote 3D temporaries only used within a single stage to 2D temporaries."""
+
+    class ReducibleFieldsCollector(gt_ir.IRNodeVisitor):
+        @classmethod
+        def apply(cls, node: gt_ir.StencilImplementation) -> Set[str]:
+            collector = cls()
+            return collector(node)
+
+        def __call__(self, node: gt_ir.StencilImplementation) -> Set[str]:
+            assert isinstance(node, gt_ir.StencilImplementation)
+            self.interval: gt_ir.AxisInterval = None
+            self.iteration_order: gt_ir.IterationOrder = None
+            self.reduced_fields: Dict[str, gt_ir.AxisInterval] = {
+                temp_field: None for temp_field in node.temporary_fields
+            }
+            self.visit(node)
+            return set(self.reduced_fields.keys())
+
+        def visit_MultiStage(self, node: gt_ir.MultiStage) -> None:
+            self.iteration_order = node.iteration_order
+            self.generic_visit(node)
+
+        def visit_ApplyBlock(self, node: gt_ir.ApplyBlock) -> None:
+            self.interval = node.interval
+            self.generic_visit(node)
+
+        def visit_FieldRef(self, node: gt_ir.FieldRef) -> None:
+            field_name = node.name
+            if field_name in self.reduced_fields:
+                if self.iteration_order == gt_ir.IterationOrder.PARALLEL:
+                    # Do not reduce fields accessed from parallel k-intervals
+                    self.reduced_fields.pop(field_name)
+                else:
+                    if "K" in node.offset and node.offset["K"] != 0:
+                        # Do not reduce fields with k-offsets
+                        self.reduced_fields.pop(field_name)
+                    else:
+                        # Do not reduce fields that are accessed across different k-intervals
+                        interval = self.reduced_fields[field_name]
+                        if interval is not None and interval != self.interval:
+                            self.reduced_fields.pop(field_name)
+                        else:
+                            self.reduced_fields[field_name] = self.interval
+
+    class StorageReducer(gt_ir.IRNodeMapper):
+        @classmethod
+        def apply(cls, node: gt_ir.StencilImplementation, reduced_fields: Set[str]) -> None:
+            instance = cls(reduced_fields)
+            return instance(node)
+
+        def __init__(self, reduced_fields: Set[str]):
+            self.reduced_fields = reduced_fields
+
+        def __call__(self, node: gt_ir.StencilImplementation) -> gt_ir.StencilImplementation:
+            assert isinstance(node, gt_ir.StencilImplementation)
+            return self.visit(node)
+
+        def visit_StencilImplementation(
+            self, path: tuple, node_name: str, node: gt_ir.StencilImplementation
+        ) -> gt_ir.StencilImplementation:
+            self.iir = node
+            return self.generic_visit(path, node_name, node)
+
+        def visit_FieldDecl(
+            self, path: tuple, node_name: str, node: gt_ir.FieldDecl
+        ) -> Tuple[bool, gt_ir.FieldDecl]:
+            if node_name in self.reduced_fields:
+                assert node_name in self.iir.temporary_fields, "Tried to reduce API field to 2D."
+                return True, gt_ir.FieldDecl(
+                    name=node_name, data_type=node.data_type, axes=["I", "J"], is_api=False
+                )
+            return True, node
+
+        def visit_FieldRef(
+            self, path: tuple, node_name: str, node: gt_ir.FieldRef
+        ) -> Tuple[bool, gt_ir.FieldRef]:
+            if node.name in self.reduced_fields:
+                axes = self.iir.fields[node.name].axes
+                return True, gt_ir.FieldRef(
+                    name=node.name, offset={axis: node.offset[axis] for axis in axes}
+                )
+            return True, node
+
+    @classmethod
+    def apply(cls, transform_data: TransformData) -> None:
+        reduced_fields = cls.ReducibleFieldsCollector.apply(transform_data.implementation_ir)
+        cls.StorageReducer.apply(transform_data.implementation_ir, reduced_fields)
+
+
 class HousekeepingPass(TransformPass):
     class WarnIfNoEffect(gt_ir.IRNodeVisitor):
         """Warn if StencilImplementation has no effect."""
