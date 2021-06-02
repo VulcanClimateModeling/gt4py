@@ -105,6 +105,10 @@ class Cast(common.Cast[Expr], Expr):  # type: ignore
     pass
 
 
+class VariableOffset(common.VariableOffset):
+    pass
+
+
 class NativeFuncCall(common.NativeFuncCall[Expr], Expr):
     _dtype_propagation = common.native_func_call_dtype_propagation(strict=True)
 
@@ -170,7 +174,8 @@ class KExtent(LocNode):
 
     @classmethod
     def from_offset(cls, offset: CartesianOffset) -> "KExtent":
-        return cls(k=(offset.k, offset.k))
+        k_offset = offset.to_dict()["k"]
+        return cls(k=(k_offset, k_offset))
 
     def union(*extents: "KExtent") -> "KExtent":
         return KExtent(k=(min(e.k[0] for e in extents), max(e.k[1] for e in extents)))

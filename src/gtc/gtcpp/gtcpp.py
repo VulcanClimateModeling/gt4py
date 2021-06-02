@@ -41,6 +41,10 @@ class Offset(common.CartesianOffset):
     pass
 
 
+class VariableOffset(common.VariableOffset):
+    pass
+
+
 class Literal(common.Literal, Expr):  # type: ignore
     pass
 
@@ -150,10 +154,11 @@ class GTExtent(LocNode):
 
     def __add__(self, offset: common.CartesianOffset) -> "GTExtent":
         if isinstance(offset, common.CartesianOffset):
+            offsets = offset.to_dict()
             return GTExtent(
-                i=(min(self.i[0], offset.i), max(self.i[1], offset.i)),
-                j=(min(self.j[0], offset.j), max(self.j[1], offset.j)),
-                k=(min(self.k[0], offset.k), max(self.k[1], offset.k)),
+                i=(min(self.i[0], offsets["i"]), max(self.i[1], offsets["i"])),
+                j=(min(self.j[0], offsets["j"]), max(self.j[1], offsets["j"])),
+                k=(min(self.k[0], offsets["k"]), max(self.k[1], offsets["k"])),
             )
         else:
             raise AssertionError("Can only add CartesianOffsets")

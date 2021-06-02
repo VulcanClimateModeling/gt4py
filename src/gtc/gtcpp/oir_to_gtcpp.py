@@ -22,7 +22,7 @@ from devtools import debug  # noqa: F401
 
 import eve
 from gtc import common, oir
-from gtc.common import CartesianOffset
+from gtc.common import CartesianOffset, VariableOffset
 from gtc.gtcpp import gtcpp
 
 
@@ -31,15 +31,20 @@ from gtc.gtcpp import gtcpp
 
 
 def _extract_accessors(node: eve.Node) -> List[gtcpp.GTAccessor]:
-    extents = (
+    def _check_extent(extent):
+        if extent[1].k[1] == VariableOffset.LARGE_NUM:
+            extent[1].k = (-extent[1].k[1], extent[1].k[1])
+        return extent
+
+    extents = dict(
         node.iter_tree()
         .if_isinstance(gtcpp.AccessorRef)
         .reduceby(
             (lambda extent, accessor_ref: extent + accessor_ref.offset),
             "name",
             init=gtcpp.GTExtent.zero(),
-            as_dict=True,
         )
+        .map(_check_extent)
     )
 
     inout_fields: Set[str] = (
@@ -125,6 +130,11 @@ class OIRToGTCpp(eve.NodeTranslator):
         self, node: common.CartesianOffset, **kwargs: Any
     ) -> common.CartesianOffset:
         return node
+
+    def visit_VariableOffset(
+        self, node: common.VariableOffset, **kwargs: Any
+    ) -> gtcpp.VariableOffset:
+        return gtcpp.VariableOffset(i=node.i, j=node.j, k=self.visit(node.k, **kwargs))
 
     def visit_FieldAccess(self, node: oir.FieldAccess, **kwargs: Any) -> gtcpp.AccessorRef:
         return gtcpp.AccessorRef(

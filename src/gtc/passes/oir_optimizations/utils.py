@@ -21,7 +21,7 @@ from typing import Any, Callable, Dict, List, Set, Tuple
 from eve import NodeVisitor
 from eve.concepts import TreeNode
 from eve.utils import XIterator, xiter
-from gtc import oir
+from gtc import common, oir
 
 
 @dataclass(frozen=True)
@@ -46,10 +46,24 @@ class AccessCollector(NodeVisitor):
         is_write: bool,
         **kwargs: Any,
     ) -> None:
+        self.visit(
+            node.offset, accesses=accesses, field_name=node.name, is_write=is_write, **kwargs
+        )
+
+    def visit_CartesianOffset(
+        self,
+        node: common.CartesianOffset,
+        *,
+        accesses: List[Access],
+        field_name: str,
+        is_write: bool,
+        **kwargs: Any,
+    ) -> None:
+        offsets = node.to_dict()
         accesses.append(
             Access(
-                field=node.name,
-                offset=(node.offset.i, node.offset.j, node.offset.k),
+                field=field_name,
+                offset=(offsets["i"], offsets["j"], offsets["k"]),
                 is_write=is_write,
             )
         )
