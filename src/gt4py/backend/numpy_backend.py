@@ -160,6 +160,10 @@ class NumPySourceGenerator(PythonSourceGenerator):
                 source_lines.append(
                     "for {ax} in {range_expr}:".format(ax=seq_axis, range_expr=range_expr)
                 )
+            for name in self.block_info.variable_koffsets:
+                source_lines.append(
+                    " " * self.indent_size + self._make_variable_koffset_arrays(name)
+                )
             source_lines.extend(" " * self.indent_size + line for line in body_sources)
         else:
             self.current_k_loop_range.clear()

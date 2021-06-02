@@ -31,12 +31,17 @@ class MaskStmtMerging(NodeTranslator):
                 isinstance(stmt, oir.MaskStmt)
                 and isinstance(merged[-1], oir.MaskStmt)
                 and stmt.mask == merged[-1].mask
+                and stmt.is_loop == merged[-1].is_loop
                 and not (
                     AccessCollector.apply(merged[-1].body).write_fields()
                     & AccessCollector.apply(stmt.mask, is_write=False).fields()
                 )
             ):
-                merged[-1] = oir.MaskStmt(mask=merged[-1].mask, body=merged[-1].body + stmt.body)
+                merged[-1] = oir.MaskStmt(
+                    mask=merged[-1].mask,
+                    body=merged[-1].body + stmt.body,
+                    is_loop=merged[-1].is_loop,
+                )
             else:
                 merged.append(stmt)
         return merged
@@ -45,4 +50,4 @@ class MaskStmtMerging(NodeTranslator):
         return oir.HorizontalExecution(body=self._merge(node.body), declarations=node.declarations)
 
     def visit_MaskStmt(self, node: oir.MaskStmt) -> oir.MaskStmt:
-        return oir.MaskStmt(mask=node.mask, body=self._merge(node.body))
+        return oir.MaskStmt(mask=node.mask, body=self._merge(node.body), is_loop=node.is_loop)

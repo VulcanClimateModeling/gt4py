@@ -145,6 +145,16 @@ class ScalarIfStmt(common.IfStmt[BlockStmt, Expr], Stmt):
         return cond
 
 
+class While(common.While[Stmt, Expr], Stmt):
+    """
+    While loop with a field or scalar expression as condition.
+
+    No special rules apply.
+    """
+
+    pass
+
+
 class UnaryOp(common.UnaryOp[Expr], Expr):
     pass
 
