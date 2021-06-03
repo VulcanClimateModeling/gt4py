@@ -84,11 +84,11 @@ class GTCGTExtGenerator:
     def _optimize_oir(self, oir):
         oir = GreedyMerging().visit(oir)
         oir = AdjacentLoopMerging().visit(oir)
-        oir = MaskInlining().visit(oir)
         oir = LocalTemporariesToScalars().visit(oir)
         oir = WriteBeforeReadTemporariesToScalars().visit(oir)
         oir = OnTheFlyMerging().visit(oir)
         oir = MaskStmtMerging().visit(oir)
+        oir = MaskInlining().visit(oir)
         oir = NoFieldAccessPruning().visit(oir)
         oir = IJCacheDetection().visit(oir)
         oir = KCacheDetection().visit(oir)
