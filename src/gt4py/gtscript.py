@@ -28,7 +28,6 @@ import types
 import numpy as np
 
 from gt4py import definitions as gt_definitions
-from gt4py import utils as gt_utils
 from gt4py.lazy_stencil import LazyStencil
 from gt4py.stencil_builder import StencilBuilder
 
@@ -421,7 +420,7 @@ class Axis:
         if isinstance(interval, slice):
             return AxisInterval(self.name, interval.start, interval.stop)
         elif isinstance(interval, int):
-            return AxisIndex(self.name, interval)
+            return AxisOffset(self.name, interval)
         else:
             raise TypeError("Unrecognized index type")
 

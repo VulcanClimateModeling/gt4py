@@ -22,7 +22,7 @@ from devtools import debug  # noqa: F401
 
 import eve
 from gtc import common, oir
-from gtc.common import CartesianOffset, VariableOffset
+from gtc.common import CartesianOffset, ComparisonOperator, VariableOffset
 from gtc.gtcpp import gtcpp
 
 
@@ -180,6 +180,15 @@ class OIRToGTCpp(eve.NodeTranslator):
         assert "stencil_symtable" in kwargs
         return gtcpp.AssignStmt(
             left=self.visit(node.left, **kwargs), right=self.visit(node.right, **kwargs)
+        )
+
+    def visit_HorizontalMask(self, node: oir.HorizontalMask, **kwargs: Any) -> gtcpp.BinaryOp:
+        zero = gtcpp.Literal(value="0", dtype=common.DataType.INT32)
+        one = gtcpp.Literal(value="1", dtype=common.DataType.INT32)
+        return gtcpp.BinaryOp(
+            left=zero,
+            right=one,
+            op=ComparisonOperator.EQ,
         )
 
     def visit_MaskStmt(self, node: oir.MaskStmt, **kwargs: Any) -> Union[gtcpp.IfStmt, gtcpp.While]:
