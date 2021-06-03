@@ -37,6 +37,7 @@ from .gtir_utils import (
     FieldDeclFactory,
     FieldIfStmtFactory,
     ParAssignStmtFactory,
+    SerialAssignStmtFactory,
     StencilFactory,
     VerticalLoopFactory,
     WhileFactory,
@@ -205,3 +206,7 @@ def test_while_without_boolean_condition():
             ),
             dtype=DataType.FLOAT32,
         )
+
+
+def test_allowed_self_assignment_in_serial_assign():
+    SerialAssignStmtFactory(left__name="foo", right__name="foo", right__offset__i=1)
