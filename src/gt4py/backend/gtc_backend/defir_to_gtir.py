@@ -336,7 +336,7 @@ class DefIRToGTIR(IRNodeVisitor):
             level=self.GT4PY_LEVELMARKER_TO_GTIR_LEVELMARKER[node.level], offset=node.offset
         )
 
-    def visit_FieldDecl(self, node: FieldDecl):
+    def visit_FieldDecl(self, node: FieldDecl, **kwargs: Any):
         dimension_names = ["I", "J", "K"]
         dimensions = [dim in node.axes for dim in dimension_names]
         # datatype conversion works via same ID
