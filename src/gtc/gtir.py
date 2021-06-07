@@ -213,7 +213,7 @@ class NativeFuncCall(common.NativeFuncCall[Expr], Expr):
     _dtype_propagation = common.native_func_call_dtype_propagation(strict=False)
 
 
-class Decl(LocNode):  # TODO probably Stmt
+class Decl(Stmt):
     name: SymbolName
     dtype: common.DataType
 
