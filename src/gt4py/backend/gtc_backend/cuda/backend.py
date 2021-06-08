@@ -216,6 +216,7 @@ class GTCCudaBackend(BaseGTBackend, CLIBackendMixin):
     name = "gtc:cuda"
     options = BaseGTBackend.GT_BACKEND_OPTS
     languages = {"computation": "cuda", "bindings": ["python"]}
+    options = {**BaseGTBackend.GT_BACKEND_OPTS, "device_sync": {"versioning": True, "type": bool}}
     storage_info = {
         "alignment": 32,
         "device": "gpu",

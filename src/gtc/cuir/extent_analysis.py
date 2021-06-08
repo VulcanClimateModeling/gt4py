@@ -37,6 +37,7 @@ class ComputeExtents(NodeTranslator):
     def visit_VerticalLoop(
         self, node: cuir.VerticalLoop, extents_map: Dict[str, cuir.IJExtent]
     ) -> cuir.VerticalLoop:
+        extents_map.clear()
         extents_maps = [copy.copy(extents_map) for _ in node.sections]
         sections = [
             self.visit(section, extents_map=em) for section, em in zip(node.sections, extents_maps)

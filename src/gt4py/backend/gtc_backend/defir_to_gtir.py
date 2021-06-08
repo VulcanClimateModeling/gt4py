@@ -137,7 +137,7 @@ class DefIRToGTIR(IRNodeVisitor):
     @classmethod
     def apply(cls, root, **kwargs: Any):
         stencil = cls().visit(root)
-        CheckHorizontalRegionAccesses().visit(stencil)
+        # CheckHorizontalRegionAccesses().visit(stencil)
         return stencil
 
     def __init__(self):
