@@ -14,7 +14,7 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from typing import Any, Dict
+from typing import Any, Callable, Dict, Union
 
 from eve import NodeTranslator
 from gtc import gtir
@@ -57,9 +57,15 @@ class _GTIRResolveAuto(NodeTranslator):
         )
 
     def visit_ParAssignStmt(self, node: gtir.ParAssignStmt, **kwargs: Any) -> gtir.ParAssignStmt:
+        return self._visit_assign(node, type=type(node), **kwargs)
+
+    def visit_SerialAssignStmt(self, node: gtir.SerialAssignStmt, **kwargs: Any) -> None:
+        return self._visit_assign(node, type=type(node), **kwargs)
+
+    def _visit_assign(self, node: Union[gtir.ParAssignStmt, gtir.SerialAssignStmt], type: Callable, **kwargs: Any):
         right = self.visit(node.right, **kwargs)
         left = self.visit(node.left, new_dtype=right.dtype, **kwargs)
-        return gtir.ParAssignStmt(left=left, right=right)
+        return type(left=left, right=right)
 
     def visit_Stencil(self, node: gtir.Stencil, **kwargs: Any) -> gtir.Stencil:
         symtable = node.symtable_
