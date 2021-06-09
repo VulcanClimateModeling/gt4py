@@ -60,12 +60,17 @@ class _GTIRResolveAuto(NodeTranslator):
         return self._visit_assign(node, type=type(node), **kwargs)
 
     def visit_SerialAssignStmt(self, node: gtir.SerialAssignStmt, **kwargs: Any) -> None:
-        return self._visit_assign(node, type=type(node), **kwargs)
+        return self._visit_assign(node, assign_type=type(node), **kwargs)
 
-    def _visit_assign(self, node: Union[gtir.ParAssignStmt, gtir.SerialAssignStmt], type: Callable, **kwargs: Any):
+    def _visit_assign(
+        self,
+        node: Union[gtir.ParAssignStmt, gtir.SerialAssignStmt],
+        assign_type: Callable,
+        **kwargs: Any,
+    ):
         right = self.visit(node.right, **kwargs)
         left = self.visit(node.left, new_dtype=right.dtype, **kwargs)
-        return type(left=left, right=right)
+        return assign_type(left=left, right=right)
 
     def visit_Stencil(self, node: gtir.Stencil, **kwargs: Any) -> gtir.Stencil:
         symtable = node.symtable_

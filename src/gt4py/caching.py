@@ -17,6 +17,7 @@
 
 import abc
 import inspect
+import logging
 import pathlib
 import pickle
 import sys
@@ -30,6 +31,13 @@ from gt4py.definitions import StencilID
 
 if TYPE_CHECKING:
     from gt4py.stencil_builder import StencilBuilder
+
+logging.basicConfig(
+    filename="./caching.log",
+    filemode="w",
+    level=logging.DEBUG,
+    format="%(asctime)s %(levelname)s: %(message)s",
+)
 
 
 class CachingStrategy(abc.ABC):
@@ -344,38 +352,39 @@ class DistributedCachingStrategy(JITCachingStrategy):
             validate_hash=validate_hash, catch_exceptions=catch_exceptions
         )
         if not result:
+            logging.info(f"R{self._uid}: Cache file '{self.cache_info_path}' does not exist")
             # Check for lock file
             cache_info_dir = self.cache_info_path.parents[0]
             self._lock_file = pathlib.Path(cache_info_dir, f"{self.cache_info_path.stem}.lock")
             locked = self._lock_file.exists()
             if locked:
-                with open("./caching.log", "a") as log:
-                    log.write(f"R{self._uid}: Waiting for lock file '{self._lock_file}' to go\n")
-
-            time_elapsed = 0.0
-            while self._lock_file.exists() and time_elapsed < self._timeout:
-                time.sleep(self._sleep_time)
-                time_elapsed += self._sleep_time
-            if time_elapsed >= self._timeout:
-                raise RuntimeError(f"Timeout while waiting for stencil '{self.cache_info_path.stem}' to compile on ID {self._uid}")
-
-            # Lock the file...
-            if not locked:
-                with open("./caching.log", "a") as log:
-                    log.write(f"R{self._uid}: Creating lock file '{self._lock_file}'\n")
+                logging.info(f"R{self._uid}: Waiting for lock file '{self._lock_file}' to go")
+                time_elapsed = 0.0
+                while self._lock_file.exists() and time_elapsed < self._timeout:
+                    time.sleep(self._sleep_time)
+                    time_elapsed += self._sleep_time
+                if time_elapsed >= self._timeout:
+                    logging.info(f"R{self._uid}: Timeout waiting for '{self._lock_file}' to go")
+                    raise RuntimeError(
+                        f"Timeout while waiting for stencil '{self.cache_info_path.stem}' to compile on ID {self._uid}"
+                    )
+                else:
+                    logging.info(f"R{self._uid}: Lock file '{self._lock_file}' has gone")
+            else:
+                # Lock the file...
+                logging.info(f"R{self._uid}: Creating lock file '{self._lock_file}'")
                 self._lock_file.parents[0].mkdir(parents=True, exist_ok=True)
                 with open(self._lock_file, "w") as lock:
                     lock.write(f"{self._uid}")
-            else:
-                with open("./caching.log", "a") as log:
-                    log.write(f"R{self._uid}: Lock file '{self._lock_file}' is gone\n")
+                logging.info(f"R{self._uid}: Created lock file '{self._lock_file}'")
+        else:
+            logging.info(f"R{self._uid}: Cache file '{self.cache_info_path}' exists")
         return result
 
     def update_cache_info(self) -> None:
         super().update_cache_info()
         if self._lock_file and self._lock_file.exists():
-            with open("./caching.log", "a") as log:
-                log.write(f"R{self._uid}: Removing lock file '{self._lock_file}'\n")
+            logging.info(f"R{self._uid}: Removing lock file '{self._lock_file}'")
             self._lock_file.unlink()
             self._lock_file = None
 

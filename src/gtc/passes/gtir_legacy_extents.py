@@ -21,11 +21,11 @@ def _ext_from_off(offset: gtir.CartesianOffset) -> Extent:
         ((min(offset.i, 0), max(offset.i, 0)), (min(offset.j, 0), max(offset.j, 0)), (0, 0))
     )
 
+
 def _overlap_with_extent(
     interval: HorizontalInterval, axis_extent: Tuple[int, int]
 ) -> Optional[Tuple[int, int]]:
     """Return a tuple of the distances to the edge of the compute domain, if overlapping."""
-
     if interval.start.level == LevelMarker.START:
         start_diff = axis_extent[0] - interval.start.offset
     else:
@@ -107,7 +107,14 @@ class LegacyExtentsVisitor(NodeVisitor):
     ) -> None:
         self._visit_assign(node, ctx=ctx, field_extents=field_extents, **kwargs)
 
-    def _visit_assign(self, node: Union[gtir.ParAssignStmt, gtir.SerialAssignStmt], *, ctx: StencilContext, field_extents: FIELD_EXT_T, **kwargs: Any):
+    def _visit_assign(
+        self,
+        node: Union[gtir.ParAssignStmt, gtir.SerialAssignStmt],
+        *,
+        ctx: StencilContext,
+        field_extents: FIELD_EXT_T,
+        **kwargs: Any,
+    ):
         left_extent = field_extents.setdefault(node.left.name, Extent.zeros())
         pa_ctx = self.AssignContext(left_extent=left_extent)
         self.visit(
@@ -141,7 +148,9 @@ class LegacyExtentsVisitor(NodeVisitor):
         horizontal_extent = _compute_extent_diff({"I": mask.i, "J": mask.j})
 
         field_accesses = block.iter_tree().if_isinstance(gtir.FieldAccess).to_list()
-        for assign_id in block.iter_tree().if_isinstance(gtir.ParAssignStmt, gtir.SerialAssignStmt).map(id):
+        for assign_id in (
+            block.iter_tree().if_isinstance(gtir.ParAssignStmt, gtir.SerialAssignStmt).map(id)
+        ):
             ctx.assign_conditions.setdefault(assign_id, []).extend(field_accesses)
 
         for field_access in field_accesses:
