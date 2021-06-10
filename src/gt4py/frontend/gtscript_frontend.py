@@ -873,6 +873,13 @@ class IRMaker(ast.NodeVisitor):
 
         return blocks
 
+    def _are_intervals_nonoverlapping(self, compute_blocks: List[gt_ir.ComputationBlock]):
+        for i, block in enumerate(compute_blocks[1:]):
+            other = compute_blocks[i]
+            if not block.interval.disjoint_from(other.interval):
+                return False
+        return True
+
     def _visit_iteration_order_node(self, node: ast.withitem, loc: gt_ir.Location):
         syntax_error = GTScriptSyntaxError(
             f"Invalid 'computation' specification at line {loc.line} (column {loc.column})",
