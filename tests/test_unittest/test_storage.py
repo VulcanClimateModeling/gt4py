@@ -173,6 +173,20 @@ def test_allocate_cpu(param_dict):
     assert field.shape == shape
 
 
+def test_wrap_cpu_array():
+    data = np.random.randn(17, 21, 5)
+    default_origin = (2,3,0)
+    for backend in ['numpy', 'gtx86']:
+        storage_1 = gt_store.wrap_cpu_array(data, backend, default_origin)
+        storage_2 = gt_store.from_array(
+            data = data,
+            shape = data.shape,
+            dtype = data.dtype,
+            backend = backend,
+            default_origin = default_origin)
+        assert np.array_equal(storage_1, storage_2)
+
+
 @pytest.mark.requires_gpu
 @hyp.given(param_dict=allocation_strategy())
 def test_allocate_gpu(param_dict):

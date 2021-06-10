@@ -17,7 +17,7 @@
 """GridTools storages classes."""
 
 
-from .storage import Storage, empty, from_array, ones, zeros
+from .storage import Storage, empty, wrap_cpu_array, from_array, ones, zeros
 
 
 _numpy_patch = None

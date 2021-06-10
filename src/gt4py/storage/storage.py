@@ -67,6 +67,16 @@ def zeros(backend, default_origin, shape, dtype, mask=None, *, managed_memory=Fa
     return storage
 
 
+def wrap_cpu_array(data: np.ndarray, backend, default_origin):
+    storage = CPUStorage(
+        buffer = data,
+        shape = data.shape,
+        dtype = data.dtype,
+        backend = backend,
+        default_origin = default_origin)
+    return storage
+
+
 def from_array(
     data, backend, default_origin, shape=None, dtype=None, mask=None, *, managed_memory=False
 ):
@@ -104,7 +114,7 @@ class Storage(np.ndarray):
 
     __array_subok__ = True
 
-    def __new__(cls, shape, dtype, backend, default_origin, mask=None):
+    def __new__(cls, shape, dtype, backend, default_origin, mask=None, buffer=None):
         """
         Parameters
         ----------
@@ -129,6 +139,10 @@ class Storage(np.ndarray):
             has reduced dimension and reading and writing from offsets along this axis acces the same element.
             In a list of spatial axes (IJK), a boolean mask will be generated with ``True`` entries for all
             dimensions except for the missing spatial axes names.
+
+        buffer: existing buffer that needs to be wrapped as gt4py storage
+            If None, new buffer is allocated
+            Not sure if that is a valid use case for GPUs
         """
 
         default_origin, shape, dtype, mask = storage_utils.normalize_storage_spec(
@@ -141,7 +155,7 @@ class Storage(np.ndarray):
         alignment = gt_backend.from_name(backend).storage_info["alignment"]
         layout_map = gt_backend.from_name(backend).storage_info["layout_map"](mask)
 
-        obj = cls._construct(backend, np.dtype(dtype), default_origin, shape, alignment, layout_map)
+        obj = cls._construct(backend, np.dtype(dtype), default_origin, shape, alignment, layout_map, buffer)
         obj._backend = backend
         obj.is_stencil_view = True
         obj._mask = mask
@@ -252,7 +266,7 @@ class GPUStorage(Storage):
     _modified_storages: dict = {}
 
     @classmethod
-    def _construct(cls, backend, dtype, default_origin, shape, alignment, layout_map):
+    def _construct(cls, backend, dtype, default_origin, shape, alignment, layout_map, buffer=None):
 
         (raw_buffer, field) = storage_utils.allocate_gpu(
             default_origin, shape, layout_map, dtype, alignment * dtype.itemsize
@@ -343,9 +357,9 @@ class CPUStorage(Storage):
         return self._ndarray.ctypes.data
 
     @classmethod
-    def _construct(cls, backend, dtype, default_origin, shape, alignment, layout_map):
+    def _construct(cls, backend, dtype, default_origin, shape, alignment, layout_map, buffer=None):
         (raw_buffer, field) = storage_utils.allocate_cpu(
-            default_origin, shape, layout_map, dtype, alignment * dtype.itemsize
+            default_origin, shape, layout_map, dtype, alignment * dtype.itemsize, buffer
         )
         obj = field.view(_ViewableNdarray)
         obj = obj.view(CPUStorage)
@@ -394,7 +408,7 @@ class ExplicitlySyncedGPUStorage(Storage):
         return res
 
     @classmethod
-    def _construct(cls, backend, dtype, default_origin, shape, alignment, layout_map):
+    def _construct(cls, backend, dtype, default_origin, shape, alignment, layout_map, buffer=None):
 
         (
             raw_buffer,

@@ -129,7 +129,7 @@ def strides_from_padded_shape(padded_size, order_idx, itemsize):
     return list(strides)
 
 
-def allocate(default_origin, shape, layout_map, dtype, alignment_bytes, allocate_f):
+def allocate(default_origin, shape, layout_map, dtype, alignment_bytes, allocate_f, buffer=None):
     dtype = np.dtype(dtype)
     assert (
         alignment_bytes % dtype.itemsize
@@ -152,7 +152,7 @@ def allocate(default_origin, shape, layout_map, dtype, alignment_bytes, allocate
 
     padded_size = int(np.prod(padded_shape))
     buffer_size = padded_size + items_per_alignment - 1
-    array, raw_buffer = allocate_f(buffer_size, dtype=dtype)
+    array, raw_buffer = allocate_f(buffer_size, dtype=dtype, buffer=buffer)
 
     allocation_mismatch = int((array.ctypes.data % alignment_bytes) / itemsize)
 
@@ -214,12 +214,15 @@ def allocate_gpu_unmanaged(default_origin, shape, layout_map, dtype, alignment_b
     return raw_buffer, field, device_raw_buffer, device_field
 
 
-def allocate_cpu(default_origin, shape, layout_map, dtype, alignment_bytes):
-    def allocate_f(size, dtype):
-        raw_buffer = np.empty(size, dtype)
+def allocate_cpu(default_origin, shape, layout_map, dtype, alignment_bytes, buffer=None):
+    def allocate_f(size, dtype, buffer=None):
+        if buffer is not None:
+            raw_buffer = np.frombuffer(buffer, dtype=dtype)
+        else:
+            raw_buffer = np.empty(size, dtype)
         return raw_buffer, raw_buffer
 
-    return allocate(default_origin, shape, layout_map, dtype, alignment_bytes, allocate_f)
+    return allocate(default_origin, shape, layout_map, dtype, alignment_bytes, allocate_f, buffer)
 
 
 def allocate_gpu(default_origin, shape, layout_map, dtype, alignment_bytes):
