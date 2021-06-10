@@ -57,7 +57,7 @@ class _GTIRResolveAuto(NodeTranslator):
         )
 
     def visit_ParAssignStmt(self, node: gtir.ParAssignStmt, **kwargs: Any) -> gtir.ParAssignStmt:
-        return self._visit_assign(node, type=type(node), **kwargs)
+        return self._visit_assign(node, assign_type=type(node), **kwargs)
 
     def visit_SerialAssignStmt(self, node: gtir.SerialAssignStmt, **kwargs: Any) -> None:
         return self._visit_assign(node, assign_type=type(node), **kwargs)
