@@ -32,7 +32,7 @@ class FutureStencil:
 
     def wait_for_cache_info(self):
         cache_info_path = self._builder.caching.cache_info_path
-        node_id = self._builder.caching._uid[0]
+        node_id = self._builder.caching._distrib_ctx[0]
 
         with open(f"./caching_r{node_id}.log", "a") as log:
             log.write(
@@ -60,7 +60,7 @@ class FutureStencil:
         self._stencil_object = stencil_class()
 
     def __call__(self, *args: Any, **kwargs: Any) -> None:
-        node_id = self._builder.caching._uid[0]
+        node_id = self._builder.caching._distrib_ctx[0]
         with open(f"./caching_r{node_id}.log", "a") as log:
             log.write(
                 f"{dt.datetime.now()}: R{node_id}: Calling stencil '{self._stencil_object._file_name}'\n"
