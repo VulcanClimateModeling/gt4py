@@ -355,12 +355,12 @@ class DistributedCachingStrategy(JITCachingStrategy):
         return result
 
     def get_generator_id(self):
-        node_id, n_nodes, node_groups = self._distrib_ctx
-        stencil_id = self.builder.stencil_id.version
-        generator_id = int(stencil_id, 16) % n_nodes
-        if generator_id != node_id and node_groups:
-            while generator_id not in node_groups:
-                generator_id = (generator_id + 1) % n_nodes
+        n_nodes, node_groups = self._distrib_ctx[1:]
+        if node_groups:
+            n_nodes = len(node_groups)
+        generator_id = int(self.builder.stencil_id.version, 16) % n_nodes
+        if node_groups:
+            generator_id = node_groups[generator_id]
         return generator_id
 
     def is_generator(self) -> bool:
