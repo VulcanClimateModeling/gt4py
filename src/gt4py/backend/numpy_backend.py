@@ -227,8 +227,8 @@ class NumPySourceGenerator(PythonSourceGenerator):
         assert node.name in self.block_info.accessors
 
         extent = self.block_info.extent
-        # lower_extent = list(extent.lower_indices)
-        # upper_extent = list(extent.upper_indices)
+        lower_extent = list(extent.lower_indices)
+        upper_extent = list(extent.upper_indices)
         parallel_axes_names = [
             axis
             for axis in self.impl_node.fields[node.name].axes
@@ -236,13 +236,11 @@ class NumPySourceGenerator(PythonSourceGenerator):
         ]
         parallel_axes_dims = [self.impl_node.domain.index(axis) for axis in parallel_axes_names]
 
-        # for d, ax in enumerate(parallel_axes_names):
-        #     idx = node.offset.get(ax, 0)
-        #     if idx:
-        #         lower_extent[d] += idx
-        #         upper_extent[d] += idx
-        lower_indices = self.block_info.extent.lower_indices
-        upper_indices = self.block_info.extent.upper_indices
+        for d, ax in enumerate(parallel_axes_names):
+            idx = node.offset.get(ax, 0)
+            if idx:
+                lower_extent[d] += idx
+                upper_extent[d] += idx
 
         index = []
         for fd, d in enumerate(parallel_axes_dims):
