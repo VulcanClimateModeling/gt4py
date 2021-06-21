@@ -74,7 +74,7 @@ class StencilBuilder:
 
     def build(self) -> Type["StencilObject"]:
         """Generate, compile and/or load everything necessary to provide a usable stencil class."""
-        # load or generate
+        # load, generate, or defer
         stencil_class = None if self.options.rebuild else self.backend.load()
         if stencil_class is None:
             stencil_class = (
