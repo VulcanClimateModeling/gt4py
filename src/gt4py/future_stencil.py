@@ -62,10 +62,10 @@ class FutureStencil:
     def __call__(self, *args: Any, **kwargs: Any) -> None:
         node_id = self._builder.caching._distrib_ctx[0]
         with open(f"./caching_r{node_id}.log", "a") as log:
+            stencil_name = self._stencil_object._file_name.split("/")[-1]
             log.write(
-                f"{dt.datetime.now()}: R{node_id}: Calling stencil '{self._stencil_object._file_name}'\n"
+                f"{dt.datetime.now()}: R{node_id}: Calling stencil '{stencil_name}'\n"
             )
-
         (self.stencil_object)(*args, **kwargs)
 
     def run(self, *args: Any, **kwargs: Any) -> None:

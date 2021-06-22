@@ -340,7 +340,7 @@ class DistributedCachingStrategy(JITCachingStrategy):
     name = "distributed"
 
     def __init__(
-        self, builder: "StencilBuilder", distrib_ctx: Tuple[Union[int, Set[int]]] = (0, 1, {})
+        self, builder: "StencilBuilder", distrib_ctx: List[Union[int, List[int]]]
     ):
         super().__init__(builder)
         self._distrib_ctx = distrib_ctx
@@ -355,12 +355,12 @@ class DistributedCachingStrategy(JITCachingStrategy):
         return result
 
     def get_generator_id(self):
-        n_nodes, node_groups = self._distrib_ctx[1:]
-        if node_groups:
-            n_nodes = len(node_groups)
+        n_nodes, node_group = self._distrib_ctx[1:]
+        if node_group:
+            n_nodes = len(node_group)
         generator_id = int(self.builder.stencil_id.version, 16) % n_nodes
-        if node_groups:
-            generator_id = node_groups[generator_id]
+        if node_group:
+            generator_id = node_group[generator_id]
         return generator_id
 
     def is_generator(self) -> bool:
@@ -368,14 +368,10 @@ class DistributedCachingStrategy(JITCachingStrategy):
         node_id = self._distrib_ctx[0]
         result = generator_id == node_id
         with open(f"./caching_r{node_id}.log", "a") as log:
-            if result:
-                log.write(
-                    f"{dt.datetime.now()}: R{node_id}: Compiling stencil '{self.cache_info_path.stem}'\n"
-                )
-            else:
-                log.write(
-                    f"{dt.datetime.now()}: R{node_id}: Deferring stencil '{self.cache_info_path.stem}' to R{generator_id}\n"
-                )
+            action = "Compiling" if result else "Deferring"
+            log.write(
+                f"{dt.datetime.now()}: R{node_id}: {action} stencil '{self.cache_info_path.stem}' to R{generator_id}\n"
+            )
         return result
 
 
