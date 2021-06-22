@@ -18,7 +18,7 @@ class FutureStencil:
     def __init__(self):
         self._stencil_object: Optional[StencilObject] = None
         self._sleep_time: float = 0.1
-        self._timeout: float = 60.0
+        self._timeout: float = 300.0
 
     @property
     def stencil_object(self) -> StencilObject:
