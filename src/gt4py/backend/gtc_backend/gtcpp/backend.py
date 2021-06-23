@@ -91,7 +91,8 @@ class GTCGTExtGenerator:
         oir = MaskInlining().visit(oir)
         oir = NoFieldAccessPruning().visit(oir)
         oir = IJCacheDetection().visit(oir)
-        oir = KCacheDetection().visit(oir)
+        # TODO(eddied): Why is this pass broken for fv3 stencils?
+        # oir = KCacheDetection().visit(oir)
         oir = PruneKCacheFills().visit(oir)
         oir = PruneKCacheFlushes().visit(oir)
         return oir
