@@ -1453,6 +1453,11 @@ class IRMaker(ast.NodeVisitor):
                         f"Invalid 'with' statement at line {loc.line} (column {loc.column}). Intervals must be specified in order of execution."
                     )
 
+                if not self._are_intervals_nonoverlapping(compute_blocks):
+                    raise GTScriptSyntaxError(
+                        f"Overlapping intervals detected at line {loc.line} (column {loc.column})"
+                    )
+
                 return compute_blocks
             elif self.parsing_context == ParsingContext.CONTROL_FLOW:
                 # and not any(
