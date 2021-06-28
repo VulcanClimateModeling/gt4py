@@ -54,11 +54,10 @@ if TYPE_CHECKING:
 
 
 class GTCDaCeExtGenerator:
-    def __init__(self, class_name, module_name, gt_backend_t, options):
+    def __init__(self, class_name, module_name, backend):
         self.class_name = class_name
         self.module_name = module_name
-        self.gt_backend_t = gt_backend_t
-        self.options = options
+        self.backend = backend
 
     def __call__(self, definition_ir: StencilDefinition) -> Dict[str, Dict[str, str]]:
         gtir = DefIRToGTIR.apply(definition_ir)
@@ -75,7 +74,7 @@ class GTCDaCeExtGenerator:
         implementation = DaCeComputationCodegen.apply(gtir, sdfg)
         bindings = DaCeBindingsCodegen.apply(gtir, sdfg, module_name=self.module_name)
 
-        bindings_ext = ".cu" if self.gt_backend_t == "gpu" else ".cpp"
+        bindings_ext = ".cu" if self.backend.GT_BACKEND_T == "gpu" else ".cpp"
         return {
             "computation": {"computation.hpp": implementation},
             "bindings": {"bindings" + bindings_ext: bindings},
@@ -164,14 +163,14 @@ class DaCeComputationCodegen:
                 data_ndim = len(array.shape) - len(dims)
 
                 # api field strides
-                fmt = "gt::sid::get_stride<{dim}>(gt::sid::sid_get_strides(__{name}_sid))"
+                fmt = "gt::sid::get_stride<{dim}>(gt::sid::get_strides(__{name}_sid))"
 
                 symbols.update(
                     {
                         f"__{name}_{dim}_stride": fmt.format(
-                            dim=f"gt::integral_constant<int, {idx}>", name=name
+                            dim=f"gt::stencil::dim::{dim.lower()}", name=name
                         )
-                        for idx, dim in enumerate(dims)
+                        for dim in dims
                     }
                 )
                 symbols.update(
