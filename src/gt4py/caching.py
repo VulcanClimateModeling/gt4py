@@ -157,10 +157,9 @@ class CachingStrategy(abc.ABC):
         """Calculate the name for the stencil class, default is to read from build options."""
         return self.builder.options.name
 
-    @abc.abstractmethod
-    def is_generator(self) -> bool:
-        """Check if this cache is responsible for generating the stencil."""
-        raise NotImplementedError
+    def is_distributed(self) -> bool:
+        """Check if this cache is distributed."""
+        return False
 
 
 class JITCachingStrategy(CachingStrategy):
@@ -318,9 +317,6 @@ class JITCachingStrategy(CachingStrategy):
         name = self.builder.options.name
         return f"{name}__{self.module_postfix}"
 
-    def is_generator(self) -> bool:
-        return True
-
 
 class DistributedCachingStrategy(JITCachingStrategy):
     """
@@ -345,34 +341,8 @@ class DistributedCachingStrategy(JITCachingStrategy):
         super().__init__(builder)
         self._distrib_ctx = distrib_ctx
 
-    def is_cache_info_available_and_consistent(
-        self, *, validate_hash: bool, catch_exceptions: bool = True
-    ) -> bool:
-        result = super().is_cache_info_available_and_consistent(
-            validate_hash=validate_hash, catch_exceptions=catch_exceptions
-        )
-        FutureStencil._builder = self.builder
-        return result
-
-    def get_generator_id(self):
-        n_nodes, node_group = self._distrib_ctx[1:]
-        if node_group:
-            n_nodes = len(node_group)
-        generator_id = int(self.builder.stencil_id.version, 16) % n_nodes
-        if node_group:
-            generator_id = node_group[generator_id]
-        return generator_id
-
-    def is_generator(self) -> bool:
-        generator_id = self.get_generator_id()
-        node_id = self._distrib_ctx[0]
-        result = generator_id == node_id
-        with open(f"./caching_r{node_id}.log", "a") as log:
-            action = "Compiling" if result else "Deferring"
-            log.write(
-                f"{dt.datetime.now()}: R{node_id}: {action} stencil '{self.cache_info_path.stem}' to R{generator_id}\n"
-            )
-        return result
+    def is_distributed(self) -> bool:
+        return True
 
 
 class NoCachingStrategy(CachingStrategy):
@@ -441,16 +411,13 @@ class NoCachingStrategy(CachingStrategy):
             qualified_name=self.builder.options.qualified_name, version=""
         )
 
-    def is_generator(self) -> bool:
-        return True
-
 
 def strategy_factory(
-    name: str, builder: "StencilBuilder", *args: Any, **kwargs: Any
+    name: str, builder: "StencilBuilder", **kwargs: Any
 ) -> CachingStrategy:
     strategies = {
         "jit": JITCachingStrategy,
         "distributed": DistributedCachingStrategy,
         "nocaching": NoCachingStrategy,
     }
-    return strategies[name](builder, *args, **kwargs)
+    return strategies[name](builder, **kwargs)

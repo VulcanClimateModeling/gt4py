@@ -74,12 +74,13 @@ class StencilBuilder:
 
     def build(self) -> Type["StencilObject"]:
         """Generate, compile and/or load everything necessary to provide a usable stencil class."""
-        # load, generate, or defer
-        stencil_class = None if self.options.rebuild else self.backend.load()
-        if stencil_class is None:
-            stencil_class = (
-                self.backend.generate() if self.caching.is_generator() else FutureStencil
-            )
+        if self.caching.is_distributed():
+            FutureStencil._builder = self
+            stencil_class = FutureStencil
+        else:
+            stencil_class = None if self.options.rebuild else self.backend.load()
+            if stencil_class is None:
+                stencil_class = self.backend.generate()
         return stencil_class
 
     def generate_computation(self) -> Dict[str, Union[str, Dict]]:
