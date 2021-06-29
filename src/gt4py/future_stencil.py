@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import abc
 import datetime as dt
+import h5py
 import numpy as np
 import random
 import time
@@ -48,18 +49,18 @@ class StencilTable:
 class RedisTable(StencilTable):
     def __init__(self):
         super().__init__()
-        self._redis_dict: Dict[int, int] = RedisDict(namespace="gt4py")
+        self._dict: Dict[int, int] = RedisDict(namespace="gt4py")
 
     def __getitem__(self, key: int) -> int:
-        if key in self._redis_dict:
-            value = int(self._redis_dict[key])
+        if key in self._dict:
+            value = int(self._dict[key])
             if value == self.DONE_STATE:
                 self._finished_keys.add(key)
             return value
         return self.NONE_STATE
 
     def __setitem__(self, key: int, value: int) -> None:
-        self._redis_dict[key] = value
+        self._dict[key] = value
 
 
 class WindowTable(StencilTable):
@@ -130,12 +131,12 @@ class FutureStencil:
 
     _builder: Optional["StencilBuilder"] = None
 
-    # _dist_dict: StencilTable = RedisTable()
-    _dist_dict: StencilTable = WindowTable()
+    _id_table: StencilTable = RedisTable()
+    # _id_table: StencilTable = WindowTable()
 
     def __init__(self):
         self._stencil_object: Optional[StencilObject] = None
-        self._sleep_time: float = 0.1
+        self._sleep_time: float = 0.3
         self._timeout: float = 60.0
 
     @property
@@ -164,29 +165,29 @@ class FutureStencil:
 
         # Random delay before accessing distributed dict...
         self.delay(0.25, True)
-        if self._dist_dict.is_none(stencil_id):
+        if self._id_table.is_none(stencil_id):
             # Stencil not yet compiled or in progress so claim it...
-            self._dist_dict[stencil_id] = node_id
+            self._id_table[stencil_id] = node_id
             with open(f"./caching_r{node_id}.log", "a") as log:
                 log.write(
                     f"{dt.datetime.now()}: R{node_id}: Compiling stencil '{cache_info_path.stem}' ({stencil_id})\n"
                 )
             stencil_class = builder.backend.generate()
             # Set to DONE...
-            self._dist_dict.set_done(stencil_id)
+            self._id_table.set_done(stencil_id)
             with open(f"./caching_r{node_id}.log", "a") as log:
                 log.write(
                     f"{dt.datetime.now()}: R{node_id}: Finished stencil '{cache_info_path.stem}' ({stencil_id})\n"
                 )
         else:
-            if not self._dist_dict.is_done(stencil_id):
+            if not self._id_table.is_done(stencil_id):
                 # Wait for stencil to be done...
                 with open(f"./caching_r{node_id}.log", "a") as log:
                     log.write(
                         f"{dt.datetime.now()}: R{node_id}: Waiting for stencil '{cache_info_path.stem}' ({stencil_id})\n"
                     )
                 time_elapsed: float = 0.0
-                while not self._dist_dict.is_done(stencil_id) and time_elapsed < self._timeout:
+                while not self._id_table.is_done(stencil_id) and time_elapsed < self._timeout:
                     time_elapsed += self.delay()
                 if time_elapsed >= self._timeout:
                     error_message = f"Timeout while waiting for stencil '{cache_info_path.stem}' to compile on R{node_id}"
