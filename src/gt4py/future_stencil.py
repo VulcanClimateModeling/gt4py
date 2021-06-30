@@ -3,6 +3,7 @@ import abc
 import datetime as dt
 import numpy as np
 import random
+import sqlite3
 import time
 
 from mpi4py import MPI
@@ -60,6 +61,40 @@ class RedisTable(StencilTable):
 
     def __setitem__(self, key: int, value: int) -> None:
         self._redis_dict[key] = value
+
+
+class SqliteTable(StencilTable):
+    def __init__(self, db_file: str = "gt4py.db"):
+        super().__init__()
+        self._conn = sqlite3.connect(db_file)
+        if self._conn:
+            create_table_sql = """CREATE TABLE IF NOT EXISTS stencils(
+                                    id integer PRIMARY KEY,
+                                    stencil integer NOT NULL,
+                                    node integer NOT NULL);"""
+            cursor = self._conn.cursor()
+            cursor.execute(create_table_sql)
+
+    def __del__(self):
+        if self._conn:
+            self._conn.close()
+
+    def __getitem__(self, key: int) -> int:
+        cursor = self._conn.cursor()
+        cursor.execute(f"SELECT * FROM stencils WHERE stencil={key}")
+        rows = cursor.fetchall()
+        if rows:
+            value = int(rows[0]["node"])
+            if value == self.DONE_STATE:
+                self._finished_keys.add(key)
+            return value
+        return self.NONE_STATE
+
+    def __setitem__(self, key: int, value: int) -> None:
+        sql = """INSERT INTO projects(stencil, node) VALUES(?,?)"""
+        cursor = self._conn.cursor()
+        cursor.execute(sql, {"stencil": key, "node": value})
+        self._conn.commit()
 
 
 class WindowTable(StencilTable):
