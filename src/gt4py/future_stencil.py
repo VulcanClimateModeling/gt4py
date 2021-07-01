@@ -82,19 +82,19 @@ class SqliteTable(StencilTable):
 
     def __getitem__(self, key: int) -> int:
         cursor = self._conn.cursor()
-        cursor.execute(f"SELECT * FROM stencils WHERE stencil={key}")
+        cursor.execute(f"SELECT node FROM stencils WHERE stencil={key}")
         rows = cursor.fetchall()
         if rows:
-            value = int(rows[0]["node"])
+            value = int(rows[0][0])
             if value == self.DONE_STATE:
                 self._finished_keys.add(key)
             return value
         return self.NONE_STATE
 
     def __setitem__(self, key: int, value: int) -> None:
-        sql = """INSERT INTO projects(stencil, node) VALUES(?,?)"""
+        sql = """INSERT INTO stencils(stencil, node) VALUES(?,?)"""
         cursor = self._conn.cursor()
-        cursor.execute(sql, {"stencil": key, "node": value})
+        cursor.execute(sql, (key, value))
         self._conn.commit()
 
 
@@ -166,7 +166,8 @@ class FutureStencil:
 
     _builder: Optional["StencilBuilder"] = None
 
-    _id_table: StencilTable = RedisTable()
+    # _id_table: StencilTable = RedisTable()
+    _id_table: StencilTable = SqliteTable()
     # _id_table: StencilTable = WindowTable()
 
     def __init__(self):
