@@ -106,7 +106,7 @@ class SqliteTable(StencilTable):
 
 
 class WindowTable(StencilTable):
-    def __init__(self, comm: MPI.Intracomm = MPI.COMM_WORLD):
+    def __init__(self, comm: MPI.Intracomm = None):
         super().__init__()
         self._node_id = comm.Get_rank()
         self._n_nodes = comm.Get_size()
