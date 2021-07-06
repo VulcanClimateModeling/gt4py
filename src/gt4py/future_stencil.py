@@ -1,16 +1,17 @@
 # -*- coding: utf-8 -*-
 import abc
 import datetime as dt
-import numpy as np
 import random
 import sqlite3
 import time
-
 from typing import Any, Dict, Optional, Set
+
+import numpy as np
 
 from gt4py.definitions import FieldInfo
 # from gt4py.stencil_builder import StencilBuilder
 from gt4py.stencil_object import StencilObject
+
 
 # try:
 #     from mpi4py import MPI
@@ -147,9 +148,7 @@ class WindowTable(StencilTable):
         buffer = np.zeros(1, np.int)
         buffer[0] = value
         with open(f"./caching_r{self._node_id}.log", "a") as log:
-            log.write(
-                f"{dt.datetime.now()}: R{self._node_id}: W: {value}\n"
-            )
+            log.write(f"{dt.datetime.now()}: R{self._node_id}: W: {value}\n")
         self._window.Lock(self._node_id)
         self._window.Put([buffer, MPI.INT], self._node_id)
         self._window.Unlock(self._node_id)
@@ -160,9 +159,7 @@ class WindowTable(StencilTable):
         self._window.Get([buffer, MPI.INT], node_id)
         self._window.Unlock(node_id)
         with open(f"./caching_r{self._node_id}.log", "a") as log:
-            log.write(
-                f"{dt.datetime.now()}: R{self._node_id}: R: {buffer[0]} from {node_id}\n"
-            )
+            log.write(f"{dt.datetime.now()}: R{self._node_id}: R: {buffer[0]} from {node_id}\n")
         return buffer[0]
 
 
@@ -251,9 +248,7 @@ class FutureStencil:
         if stencil_class is None:
             error_message = f"`stencil_class` is None '{cache_info_path.stem}' ({stencil_id})!"
             with open(f"./caching_r{node_id}.log", "a") as log:
-                log.write(
-                    f"{dt.datetime.now()}: R{node_id}: ERROR: {error_message}\n"
-                )
+                log.write(f"{dt.datetime.now()}: R{node_id}: ERROR: {error_message}\n")
                 raise RuntimeError(error_message)
 
         self._stencil_object = stencil_class()

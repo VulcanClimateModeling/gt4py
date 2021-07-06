@@ -335,9 +335,7 @@ class DistributedCachingStrategy(JITCachingStrategy):
 
     name = "distributed"
 
-    def __init__(
-        self, builder: "StencilBuilder", distrib_ctx: List[Union[int, List[int]]]
-    ):
+    def __init__(self, builder: "StencilBuilder", distrib_ctx: List[Union[int, List[int]]]):
         super().__init__(builder)
         self._distrib_ctx = distrib_ctx
 
@@ -412,9 +410,7 @@ class NoCachingStrategy(CachingStrategy):
         )
 
 
-def strategy_factory(
-    name: str, builder: "StencilBuilder", **kwargs: Any
-) -> CachingStrategy:
+def strategy_factory(name: str, builder: "StencilBuilder", **kwargs: Any) -> CachingStrategy:
     strategies = {
         "jit": JITCachingStrategy,
         "distributed": DistributedCachingStrategy,
