@@ -31,12 +31,16 @@ from gt4py.backend.gt_backends import (
     mc_is_compatible_layout,
     x86_is_compatible_layout,
 )
+
 from gt4py.backend.gtc_backend.common import bindings_main_template, pybuffer_to_sid
 from gt4py.backend.gtc_backend.defir_to_gtir import DefIRToGTIR
 from gtc import gtir_to_oir
 from gtc.common import DataType
 from gtc.gtcpp import gtcpp, gtcpp_codegen, oir_to_gtcpp
 from gtc.passes.gtir_pipeline import GtirPipeline
+from gtc.passes.oir_dace_optimizations.horizontal_execution_merging import (
+    graph_merge_horizontal_executions,
+)
 from gtc.passes.oir_optimizations.caches import FillFlushToLocalKCaches
 from gtc.passes.oir_optimizations.horizontal_execution_merging import GreedyMerging
 from gtc.passes.oir_pipeline import OirPipeline
@@ -55,7 +59,11 @@ class GTCGTExtGenerator:
     def __call__(self, definition_ir) -> Dict[str, Dict[str, str]]:
         gtir = GtirPipeline(DefIRToGTIR.apply(definition_ir)).full()
         oir = OirPipeline(gtir_to_oir.GTIRToOIR().visit(gtir)).full(
-            skip=[GreedyMerging().visit, FillFlushToLocalKCaches().visit]
+            skip=[
+                graph_merge_horizontal_executions,
+                GreedyMerging().visit,
+                FillFlushToLocalKCaches().visit
+            ]
         )
         gtcpp = oir_to_gtcpp.OIRToGTCpp().visit(oir)
         implementation = gtcpp_codegen.GTCppCodegen.apply(
