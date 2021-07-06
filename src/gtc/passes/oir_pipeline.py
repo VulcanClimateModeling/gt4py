@@ -1,9 +1,9 @@
 from typing import Callable, Dict, Optional, Sequence, Tuple
 
 from gtc import oir
-from gtc.passes.oir_dace_optimizations.horizontal_execution_merging import (
-    graph_merge_horizontal_executions,
-)
+# from gtc.passes.oir_dace_optimizations.horizontal_execution_merging import (
+#     graph_merge_horizontal_executions,
+# )
 from gtc.passes.oir_optimizations.caches import (
     FillFlushToLocalKCaches,
     IJCacheDetection,
@@ -38,7 +38,7 @@ class OirPipeline:
 
     def steps(self) -> Sequence[PASS_T]:
         return [
-            graph_merge_horizontal_executions,
+            # graph_merge_horizontal_executions,
             GreedyMerging().visit,
             AdjacentLoopMerging().visit,
             LocalTemporariesToScalars().visit,
