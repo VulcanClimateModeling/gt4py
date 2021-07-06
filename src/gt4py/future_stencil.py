@@ -12,10 +12,10 @@ from gt4py.definitions import FieldInfo
 # from gt4py.stencil_builder import StencilBuilder
 from gt4py.stencil_object import StencilObject
 
-try:
-    from mpi4py import MPI
-except ImportError:
-    MPI = None
+# try:
+#     from mpi4py import MPI
+# except ImportError:
+MPI = None
 
 try:
     from redis_dict import RedisDict
