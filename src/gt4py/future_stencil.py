@@ -7,13 +7,17 @@ import random
 import sqlite3
 import time
 
-from mpi4py import MPI
 from redis_dict import RedisDict
 from typing import Any, Dict, Optional, Set
 
 from gt4py.definitions import FieldInfo
 # from gt4py.stencil_builder import StencilBuilder
 from gt4py.stencil_object import StencilObject
+
+try:
+    from mpi4py import MPI
+except ImportError:
+    MPI = None
 
 
 class StencilTable:
