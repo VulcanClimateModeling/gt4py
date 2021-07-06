@@ -1,13 +1,11 @@
 # -*- coding: utf-8 -*-
 import abc
 import datetime as dt
-import h5py
 import numpy as np
 import random
 import sqlite3
 import time
 
-from redis_dict import RedisDict
 from typing import Any, Dict, Optional, Set
 
 from gt4py.definitions import FieldInfo
@@ -18,6 +16,11 @@ try:
     from mpi4py import MPI
 except ImportError:
     MPI = None
+
+try:
+    from redis_dict import RedisDict
+except ModuleNotFoundError:
+    redis_dict = None
 
 
 class StencilTable:
