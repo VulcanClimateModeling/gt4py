@@ -25,6 +25,10 @@ from gtc.passes.oir_optimizations.vertical_loop_merging import AdjacentLoopMergi
 PASS_T = Callable[[oir.Stencil], oir.Stencil]
 
 
+def is_skipped(step: PASS_T, skip: Sequence[PASS_T] = None) -> bool:
+    return step in skip or step.__self__.__class__ in skip
+
+
 class OirPipeline:
     """
     OIR passes pipeline runs passes in order and allows skipping.
@@ -48,7 +52,7 @@ class OirPipeline:
             MaskInlining().visit,
             NoFieldAccessPruning().visit,
             IJCacheDetection().visit,
-            # KCacheDetection().visit,
+            KCacheDetection().visit,
             PruneKCacheFills().visit,
             PruneKCacheFlushes().visit,
             FillFlushToLocalKCaches().visit,
@@ -68,5 +72,5 @@ class OirPipeline:
 
     def full(self, skip: Sequence[PASS_T] = None) -> oir.Stencil:
         skip = skip or []
-        pipeline = [step for step in self.steps() if step not in skip]
+        pipeline = [step for step in self.steps() if not is_skipped(step, skip)]
         return self._get_cached(pipeline) or self._set_cached(pipeline, self.apply(pipeline))
