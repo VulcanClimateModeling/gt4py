@@ -673,6 +673,7 @@ class BaseGTBackend(gt_backend.BasePyExtBackend, gt_backend.CLIBackendMixin):
         "clean": {"versioning": False, "type": bool},
         "debug_mode": {"versioning": True, "type": bool},
         "verbose": {"versioning": False, "type": bool},
+        "opt_level": {"versioning": True, "type": int},
     }
 
     GT_BACKEND_T: str
@@ -759,6 +760,7 @@ class BaseGTBackend(gt_backend.BasePyExtBackend, gt_backend.CLIBackendMixin):
             **pyext_builder.get_gt_pyext_build_opts(
                 debug_mode=self.builder.options.backend_opts.get("debug_mode", False),
                 add_profile_info=self.builder.options.backend_opts.get("add_profile_info", False),
+                opt_level=self.builder.options.backend_opts.get("opt_level", 3),
                 uses_cuda=uses_cuda,
                 gt_version=gt_version,
             ),

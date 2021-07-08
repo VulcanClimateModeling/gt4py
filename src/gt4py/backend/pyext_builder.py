@@ -46,6 +46,7 @@ def get_gt_pyext_build_opts(
     uses_openmp: bool = True,
     uses_cuda: bool = False,
     gt_version: int = 1,
+    opt_level: int = 3,
 ) -> Dict[str, Union[str, List[str], Dict[str, Any]]]:
 
     include_dirs = [gt_config.build_settings["boost_include_path"]]
@@ -106,7 +107,7 @@ def get_gt_pyext_build_opts(
     )
     extra_link_args = gt_config.build_settings["extra_link_args"]
 
-    mode_flags = ["-O0", "-g"] if debug_mode else ["-O3", "-DNDEBUG"]
+    mode_flags = ["-O0", "-g"] if debug_mode else [f"-O{opt_level}", "-DNDEBUG"]
     extra_compile_args["cxx"].extend(mode_flags)
     extra_compile_args["nvcc"].extend(mode_flags)
     extra_link_args.extend(mode_flags)
