@@ -59,6 +59,7 @@ build_settings: Dict[str, Any] = {
             # disable warnings in nvcc as a workaround for
             # 'catastrophic failure' error in nvcc < 11
             "--disable-warnings",
+            "--generate-line-info",
         ],
     },
     "extra_link_args": [],
