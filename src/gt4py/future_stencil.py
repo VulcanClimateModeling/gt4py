@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 import abc
 import datetime as dt
+import numpy as np
+import os
 import random
 import sqlite3
 import time
-from typing import Any, Dict, Optional, Set
 
-import numpy as np
+from concurrent.futures import ThreadPoolExecutor
+from typing import Any, Callable, Dict, Optional, Set
 
 from gt4py.definitions import FieldInfo
 # from gt4py.stencil_builder import StencilBuilder
@@ -24,7 +26,33 @@ except ModuleNotFoundError:
     redis_dict = None
 
 
-class StencilTable:
+class Singleton(type):
+    _instances = {}
+
+    def __call__(cls, *args, **kwargs):
+        if cls not in cls._instances:
+            cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
+        return cls._instances[cls]
+
+
+class StencilPool(object, metaclass=Singleton):
+    def __init__(self):
+        self._executor = ThreadPoolExecutor(max_workers=os.cpu_count())
+        self._futures: Dict[int, object] = {}
+
+    def __call__(self, stencil_id: int, builder: "StencilBuilder"):
+        if stencil_id not in self._futures:
+            self._futures[stencil_id] = self._executor.submit(builder.backend.generate)
+        return self._futures[stencil_id]
+
+    def __contains__(self, stencil_id: int):
+        return stencil_id in self._futures
+
+    def __getitem__(self, stencil_id: int) -> int:
+        return self._futures[stencil_id]
+
+
+class StencilTable(object, metaclass=Singleton):
     DONE_STATE: int = -1
     NONE_STATE: int = -2
 
@@ -169,9 +197,9 @@ class FutureStencil:
     """
 
     _builder: Optional["StencilBuilder"] = None
-
-    # _id_table: StencilTable = RedisTable()
-    _id_table: StencilTable = SqliteTable()
+    _thread_pool: StencilPool = StencilPool()
+    _id_table: StencilTable = RedisTable()
+    # _id_table: StencilTable = SqliteTable()
     # _id_table: StencilTable = WindowTable()
 
     def __init__(self):
@@ -181,7 +209,7 @@ class FutureStencil:
 
     @property
     def stencil_object(self) -> StencilObject:
-        if not self._stencil_object:
+        if self._stencil_object is None:
             self.wait_for_stencil()
         return self._stencil_object
 
@@ -208,16 +236,11 @@ class FutureStencil:
         if self._id_table.is_none(stencil_id):
             # Stencil not yet compiled or in progress so claim it...
             self._id_table[stencil_id] = node_id
+            # stencil_class = builder.backend.generate()
+            self._thread_pool(stencil_id, builder)
             with open(f"./caching_r{node_id}.log", "a") as log:
                 log.write(
-                    f"{dt.datetime.now()}: R{node_id}: Compiling stencil '{cache_info_path.stem}' ({stencil_id})\n"
-                )
-            stencil_class = builder.backend.generate()
-            # Set to DONE...
-            self._id_table.set_done(stencil_id)
-            with open(f"./caching_r{node_id}.log", "a") as log:
-                log.write(
-                    f"{dt.datetime.now()}: R{node_id}: Finished stencil '{cache_info_path.stem}' ({stencil_id})\n"
+                    f"{dt.datetime.now()}: R{node_id}: Submitted stencil '{cache_info_path.stem}' ({stencil_id})\n"
                 )
         else:
             if not self._id_table.is_done(stencil_id):
@@ -245,12 +268,22 @@ class FutureStencil:
                 )
             stencil_class = builder.backend.load()
 
-        if stencil_class is None:
+        if stencil_id in self._thread_pool:
+            future = self._thread_pool[stencil_id]
+            stencil_class = future.result()
+            # Set to DONE...
+            self._id_table.set_done(stencil_id)
+
+        if not stencil_class:
             error_message = f"`stencil_class` is None '{cache_info_path.stem}' ({stencil_id})!"
             with open(f"./caching_r{node_id}.log", "a") as log:
                 log.write(f"{dt.datetime.now()}: R{node_id}: ERROR: {error_message}\n")
                 raise RuntimeError(error_message)
 
+        with open(f"./caching_r{node_id}.log", "a") as log:
+            log.write(
+                f"{dt.datetime.now()}: R{node_id}: Finished stencil '{cache_info_path.stem}' ({stencil_id})\n"
+            )
         self._stencil_object = stencil_class()
 
     def __call__(self, *args: Any, **kwargs: Any) -> None:
