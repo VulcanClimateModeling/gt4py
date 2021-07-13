@@ -8,7 +8,7 @@ import sqlite3
 import time
 
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, Callable, Dict, Optional, Set
+from typing import Any, Dict, Optional, Set
 
 from gt4py.definitions import FieldInfo
 # from gt4py.stencil_builder import StencilBuilder
@@ -196,13 +196,13 @@ class FutureStencil:
     A stencil object that is compiled by another node in a distributed context.
     """
 
-    _builder: Optional["StencilBuilder"] = None
     _thread_pool: StencilPool = StencilPool()
     _id_table: StencilTable = RedisTable()
     # _id_table: StencilTable = SqliteTable()
     # _id_table: StencilTable = WindowTable()
 
-    def __init__(self):
+    def __init__(self, builder: Optional["StencilBuilder"] = None):
+        self._builder: Optional["StencilBuilder"] = builder
         self._stencil_object: Optional[StencilObject] = None
         self._sleep_time: float = 0.3
         self._timeout: float = 60.0
@@ -287,7 +287,10 @@ class FutureStencil:
         self._stencil_object = stencil_class()
 
     def __call__(self, *args: Any, **kwargs: Any) -> None:
-        (self.stencil_object)(*args, **kwargs)
+        # If args or kwargs supplied, call stencil object, instantiate otherwise
+        if args or kwargs:
+            return (self.stencil_object)(*args, **kwargs)
+        return self
 
     def run(self, *args: Any, **kwargs: Any) -> None:
         self.stencil_object.run(*args, **kwargs)

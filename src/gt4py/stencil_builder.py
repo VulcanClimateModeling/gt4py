@@ -75,8 +75,7 @@ class StencilBuilder:
     def build(self) -> Type["StencilObject"]:
         """Generate, compile and/or load everything necessary to provide a usable stencil class."""
         if self.caching.is_distributed():
-            FutureStencil._builder = self
-            stencil_class = FutureStencil
+            stencil_class = FutureStencil(self)
         else:
             stencil_class = None if self.options.rebuild else self.backend.load()
             if stencil_class is None:
