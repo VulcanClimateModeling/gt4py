@@ -1454,7 +1454,8 @@ class IRMaker(ast.NodeVisitor):
                     )
 
                 if not self._are_intervals_nonoverlapping(compute_blocks):
-                    raise GTScriptSyntaxError(
+                    # raise GTScriptSyntaxError(
+                    print(
                         f"Overlapping intervals detected at line {loc.line} (column {loc.column})"
                     )
 

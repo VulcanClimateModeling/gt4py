@@ -16,17 +16,15 @@
 """Caching strategies for stencil generation."""
 
 import abc
-import datetime as dt
 import inspect
 import pathlib
 import pickle
 import sys
 import types
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional
 
 import gt4py
 from gt4py.definitions import StencilID
-from gt4py.future_stencil import FutureStencil
 
 
 if TYPE_CHECKING:
@@ -157,8 +155,8 @@ class CachingStrategy(abc.ABC):
         """Calculate the name for the stencil class, default is to read from build options."""
         return self.builder.options.name
 
-    def is_distributed(self) -> bool:
-        """Check if this cache is distributed."""
+    def is_deferred(self) -> bool:
+        """Check if this cache is deferred."""
         return False
 
 
@@ -318,29 +316,24 @@ class JITCachingStrategy(CachingStrategy):
         return f"{name}__{self.module_postfix}"
 
 
-class DistributedCachingStrategy(JITCachingStrategy):
+class DeferredCachingStrategy(JITCachingStrategy):
     """
-    Caching strategy for JIT stencil generation in a distributed context.
+    Caching strategy for JIT stencil generation in a deferred context.
 
-    Applies the JIT caching strategy across a distributed system.
-
-    If the cache info check is inconsistent and a rebuild is required, the
-    current node will attempt to create a lock file and writes is own unique
-    ID (e.g,. MPI rank) to the lock file. If a lock file exists then another
-    node is already compiling this stencil, so the current node will block
-    until the stencil has been compiled. The compiling node will delete the
-    lock file when it has finished compiling the stencil and writing the
-    cache info file.
+    Defers the responsibility for code generation and compilation to another class or function.
     """
 
-    name = "distributed"
+    name = "deferred"
 
-    def __init__(self, builder: "StencilBuilder", distrib_ctx: List[Union[int, List[int]]]):
+    def __init__(self, builder: "StencilBuilder", defer_function: Callable):
         super().__init__(builder)
-        self._distrib_ctx = distrib_ctx
+        self._defer_function = defer_function
 
-    def is_distributed(self) -> bool:
+    def is_deferred(self) -> bool:
         return True
+
+    def defer(self):
+        return self._defer_function(self.builder)
 
 
 class NoCachingStrategy(CachingStrategy):
@@ -410,10 +403,12 @@ class NoCachingStrategy(CachingStrategy):
         )
 
 
-def strategy_factory(name: str, builder: "StencilBuilder", **kwargs: Any) -> CachingStrategy:
+def strategy_factory(
+    name: str, builder: "StencilBuilder", *args: Any, **kwargs: Any
+) -> CachingStrategy:
     strategies = {
         "jit": JITCachingStrategy,
-        "distributed": DistributedCachingStrategy,
+        "deferred": DeferredCachingStrategy,
         "nocaching": NoCachingStrategy,
     }
-    return strategies[name](builder, **kwargs)
+    return strategies[name](builder, *args, **kwargs)
