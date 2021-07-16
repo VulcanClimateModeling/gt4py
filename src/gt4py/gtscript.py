@@ -359,14 +359,14 @@ def lazy_stencil(
     return _decorator(definition)
 
 
-class AxisOffset:
+class AxisIndex:
     def __init__(self, axis: str, index: int, offset: int = 0):
         self.axis = axis
         self.index = index
         self.offset = offset
 
     def __repr__(self):
-        return f"AxisOffset(axis={self.axis}, index={self.index}, offset={self.offset})"
+        return f"AxisIndex(axis={self.axis}, index={self.index}, offset={self.offset})"
 
     def __eq__(self, other):
         return repr(self) == repr(other)
@@ -380,7 +380,7 @@ class AxisOffset:
         if offset == 0:
             return self
         else:
-            return AxisOffset(self.axis, self.index, self.offset + offset)
+            return AxisIndex(self.axis, self.index, self.offset + offset)
 
     def __radd__(self, offset: int):
         return self.__add__(offset)

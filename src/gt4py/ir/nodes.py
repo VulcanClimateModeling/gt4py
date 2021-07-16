@@ -113,6 +113,7 @@ storing a reference to the piece of source code which originated the node.
     Statement   = Decl
                 | Assign(target: Ref, value: Expr)
                 | If(condition: expr, main_body: BlockStmt, else_body: BlockStmt)
+                | HorizontalIf(intervals: Dict[str, Interval], body: BlockStmt)
                 | While(condition: expr, body: BlockStmt)
                 | HorizontalIf(intervals: Dict[str, Interval], body: BlockStmt)
                 | BlockStmt
@@ -733,6 +734,13 @@ class AxisInterval(Node):
             )
 
         return interval
+
+    @property
+    def is_single_index(self) -> bool:
+        if not isinstance(self.start, AxisBound) or not isinstance(self.end, AxisBound):
+            return False
+
+        return self.start.level == self.end.level and self.start.offset == self.end.offset - 1
 
     def disjoint_from(self, other: "AxisInterval") -> bool:
         # This made-up constant must be larger than any LevelMarker.offset used
